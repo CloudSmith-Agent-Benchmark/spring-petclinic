@@ -41,16 +41,6 @@ public class PetValidator implements Validator {
 		if (!StringUtils.hasText(name)) {
 			errors.rejectValue("name", REQUIRED, REQUIRED);
 		}
-
-		// type validation
-		if (pet.isNew() && pet.getType() == null) {
-			errors.rejectValue("type", REQUIRED, REQUIRED);
-		}
-
-		// birth date validation
-		if (pet.getBirthDate() == null) {
-			errors.rejectValue("birthDate", REQUIRED, REQUIRED);
-		}
 	}
 
 	/**
