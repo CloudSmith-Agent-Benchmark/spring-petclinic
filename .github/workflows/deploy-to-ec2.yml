@@ -76,14 +76,38 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USER }}
         run: |
+          # Create private key file
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           
-          # Stop any existing instance
+          # Test SSH connection first
+          if ! ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i private_key.pem $EC2_USERNAME@$EC2_HOST 'echo "SSH Connection successful"'; then
+            echo "Failed to establish SSH connection"
+            rm private_key.pem
+            exit 1
+          fi
+          
+          # Stop any existing instance with proper error handling
           ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USERNAME@$EC2_HOST 'pkill -f petclinic || true'
           
-          # Start the application
-          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USERNAME@$EC2_HOST 'cd ~/petclinic && nohup ./start.sh > app.log 2>&1 &'
+          # Start the application with health check
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USERNAME@$EC2_HOST '
+            cd ~/petclinic
+            nohup ./start.sh > app.log 2>&1 &
+            
+            # Wait for application to start (max 60 seconds)
+            for i in {1..12}; do
+              if grep -q "Started PetClinicApplication" app.log; then
+                echo "Application started successfully"
+                exit 0
+              fi
+              sleep 5
+            done
+            
+            echo "Application failed to start within timeout"
+            tail -n 50 app.log
+            exit 1
+          '
           
           # Cleanup
           rm private_key.pem
