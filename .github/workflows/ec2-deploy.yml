@@ -42,3 +42,4 @@ jobs:
             pkill -f 'java.*petclinic'
             set -e
             nohup java -jar /home/${{ secrets.EC2_USER }}/spring-petclinic/target/*.jar --server.port=8080 > /home/${{ secrets.EC2_USER }}/spring-petclinic/app.log 2>&1 &
+            exit 0
