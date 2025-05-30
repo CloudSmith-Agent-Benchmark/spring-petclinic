@@ -39,4 +39,4 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             pkill -f 'java.*petclinic' || true
-            nohup java -jar /home/${{ secrets.EC2_USER }}/spring-petclinic/*.jar --server.port=${{ secrets.EC2_APP_PORT || 8080 }} > app.log 2>&1 &
+            nohup java -jar /home/${{ secrets.EC2_USER }}/spring-petclinic/target/*.jar --server.port=8080 > /home/${{ secrets.EC2_USER }}/spring-petclinic/app.log 2>&1 &
