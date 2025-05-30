@@ -31,9 +31,50 @@ Or you can run it from Maven directly using the Spring Boot Maven plugin. If you
 
 > NOTE: If you prefer to use Gradle, you can build the app using `./gradlew build` and look for the jar file in `build/libs`.
 
-## Building a Container
+## Building and Deploying to EC2
 
-There is no `Dockerfile` in this project. You can build a container image (if you have a docker daemon) using the Spring Boot build plugin:
+This project includes a GitHub Actions workflow that automatically builds and deploys the application to AWS EC2. The workflow is triggered on pushes to the main branch or manually through the GitHub Actions UI.
+
+### Prerequisites for EC2 Deployment
+
+The following secrets need to be configured in your GitHub repository (Settings > Secrets and Variables > Actions):
+
+1. AWS Credentials:
+   - `AWS_ACCESS_KEY_ID`: Your AWS access key ID
+   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret access key
+   - `AWS_REGION`: The AWS region where your EC2 instance is located (e.g., us-east-1)
+
+2. EC2 Instance Access:
+   - `EC2_SSH_PRIVATE_KEY`: The private SSH key to access your EC2 instance
+   - `EC2_HOST`: The public DNS or IP address of your EC2 instance
+   - `EC2_USERNAME`: The username to connect to your EC2 instance (e.g., ec2-user)
+
+3. Database Configuration:
+   - `DB_HOST`: Your PostgreSQL database host
+   - `DB_NAME`: Your database name (e.g., petclinic)
+   - `DB_USERNAME`: Your database username
+   - `DB_PASSWORD`: Your database password
+
+To set up these secrets:
+1. Go to your GitHub repository
+2. Navigate to Settings > Secrets and Variables > Actions
+3. Click "New repository secret"
+4. Add each secret with its corresponding value
+5. Ensure your EC2 instance has the necessary security group rules to allow:
+   - Inbound SSH access (port 22) from GitHub Actions
+   - Inbound HTTP access (port 8080) for the application
+   - Outbound access to your PostgreSQL database
+
+### Building Container Locally
+
+You can build the container image locally using Docker:
+
+```bash
+./mvnw package -DskipTests
+docker build -t petclinic .
+```
+
+Or using the Spring Boot build plugin:
 
 ```bash
 ./mvnw spring-boot:build-image
