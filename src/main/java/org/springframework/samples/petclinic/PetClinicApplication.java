@@ -30,10 +30,9 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 @ImportRuntimeHints(PetClinicRuntimeHints.class)
 public class PetClinicApplication {
 
-        public static void main(String[] args) {
-                // Set IPv4 stack as preferred
-                System.setProperty("java.net.preferIPv4Stack", "true");
-                SpringApplication.run(PetClinicApplication.class, args);
-        }
+	public static void main(String[] args) {
+		System.setProperty("java.net.preferIPv4Stack", "true");
+		SpringApplication.run(PetClinicApplication.class, args);
+	}
 
 }
