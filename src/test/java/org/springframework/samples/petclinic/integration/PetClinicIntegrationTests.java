@@ -25,7 +25,6 @@ import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetType;
 import org.springframework.samples.petclinic.owner.Visit;
 import org.springframework.samples.petclinic.vet.Vet;
-import org.springframework.samples.petclinic.vet.Vets;
 import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -132,15 +131,15 @@ public class PetClinicIntegrationTests {
 
     @Test
     void testListVetsWithSpecialties() {
-        ResponseEntity<Vets> result = restTemplate.exchange(
+        ResponseEntity<Vet[]> result = restTemplate.exchange(
             RequestEntity.get("/vets.json").build(),
-            Vets.class
+            Vet[].class
         );
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isNotNull();
-        assertThat(result.getBody().getVetList()).isNotEmpty();
-        assertThat(result.getBody().getVetList().get(0).getSpecialties()).isNotNull();
+        assertThat(result.getBody()).hasSizeGreaterThan(0);
+        assertThat(result.getBody()[0].getSpecialties()).isNotNull();
     }
 
     @Test
