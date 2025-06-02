@@ -80,6 +80,12 @@ class OwnerController {
 		}
 
 		Owner owner = optionalOwner.get();
+		
+		// Check for duplicate pet name
+		if (pet.getName() != null && owner.getPet(pet.getName(), true) != null) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).build();
+		}
+
 		owner.addPet(pet);
 		this.owners.save(owner);
 

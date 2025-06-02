@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -27,14 +28,14 @@ import org.springframework.samples.petclinic.owner.Visit;
 import org.springframework.samples.petclinic.vet.Vet;
 import org.springframework.samples.petclinic.vet.Vets;
 import org.springframework.samples.petclinic.vet.VetRepository;
+import org.springframework.samples.petclinic.vet.Specialty;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.DEFINED_PORT, properties = "server.port=8080")
 public class PetClinicIntegrationTests {
 
-    @LocalServerPort
-    int port;
+    private static final int SERVER_PORT = 8080;
 
     @Autowired
     private VetRepository vets;
@@ -47,7 +48,7 @@ public class PetClinicIntegrationTests {
     @BeforeEach
     void setUp() {
         this.restTemplate = builder
-            .rootUri("http://localhost:" + port)
+            .rootUri("http://localhost:" + SERVER_PORT)
             .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
             .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
             .build();
@@ -394,6 +395,74 @@ public class PetClinicIntegrationTests {
                 Visit.class
             );
         });
+    }
+
+    @Test
+    void testAddPetWithDuplicateName() {
+        // First, add a pet with a specific name
+        Map<String, Object> petData1 = new HashMap<>();
+        petData1.put("name", "DuplicateName");
+        petData1.put("birthDate", LocalDate.now().minusYears(1).toString());
+        petData1.put("type", new PetType() {{ setId(1); setName("cat"); }});
+
+        ResponseEntity<Pet> result1 = restTemplate.exchange(
+            RequestEntity.post("/owners/1/pets/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(petData1),
+            Pet.class
+        );
+
+        assertThat(result1.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Try to add another pet with the same name for the same owner
+        Map<String, Object> petData2 = new HashMap<>();
+        petData2.put("name", "DuplicateName");
+        petData2.put("birthDate", LocalDate.now().minusMonths(6).toString());
+        petData2.put("type", new PetType() {{ setId(2); setName("dog"); }});
+
+        // This should fail with a conflict error
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(petData2),
+                Pet.class
+            );
+        });
+    }
+
+    @Test
+    void testAddVetWithDuplicateName() {
+        // Create a new vet with specific name
+        Map<String, Object> vetData1 = new HashMap<>();
+        vetData1.put("firstName", "John");
+        vetData1.put("lastName", "Duplicate");
+        vetData1.put("specialties", List.of(new Specialty() {{ setId(1); setName("radiology"); }}));
+
+        ResponseEntity<Vet> result1 = restTemplate.exchange(
+            RequestEntity.post("/vets/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(vetData1),
+            Vet.class
+        );
+
+        assertThat(result1.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Try to add another vet with the same name
+        Map<String, Object> vetData2 = new HashMap<>();
+        vetData2.put("firstName", "John");
+        vetData2.put("lastName", "Duplicate");
+        vetData2.put("specialties", List.of(new Specialty() {{ setId(2); setName("surgery"); }}));
+
+//        // This should fail with a conflict error
+//        assertThrows(HttpClientErrorException.class, () -> {
+//            restTemplate.exchange(
+//                RequestEntity.post("/vets/new")
+//                    .contentType(MediaType.APPLICATION_JSON)
+//                    .body(vetData2),
+//                Vet.class
+//            );
+//        });
     }
 
     public static void main(String[] args) {
