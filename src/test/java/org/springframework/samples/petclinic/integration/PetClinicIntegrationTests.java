@@ -193,41 +193,41 @@ public class PetClinicIntegrationTests {
 //        assertThat(result.getBody().getLastName()).isEqualTo("Franklin-Updated");
 //    }
 //
-//    @Test
-//    void testAddPetWithInvalidDate() {
-//        Map<String, Object> invalidPetData = new HashMap<>();
-//        invalidPetData.put("name", "Invalid");
-//        invalidPetData.put("birthDate", LocalDate.now().plusDays(1).toString()); // Future date
-//        invalidPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
-//
-//        assertThrows(HttpClientErrorException.class, () -> {
-//            restTemplate.exchange(
-//                RequestEntity.post("/owners/1/pets/new")
-//                    .contentType(MediaType.APPLICATION_JSON)
-//                    .body(invalidPetData),
-//                Pet.class
-//            );
-//        });
-//    }
-//
-//    @Test
-//    void testUpdateExistingPet() {
-//        Map<String, Object> updatedPetData = new HashMap<>();
-//        updatedPetData.put("name", "Leo Updated");
-//        updatedPetData.put("birthDate", LocalDate.now().minusYears(2).toString());
-//        updatedPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
-//
-//        ResponseEntity<Pet> result = restTemplate.exchange(
-//            RequestEntity.put("/owners/1/pets/1")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .body(updatedPetData),
-//            Pet.class
-//        );
-//
-//        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-//        assertThat(result.getBody()).isNotNull();
-//        assertThat(result.getBody().getName()).isEqualTo("Leo Updated");
-//    }
+    @Test
+    void testAddPetWithInvalidDate() {
+        Map<String, Object> invalidPetData = new HashMap<>();
+        invalidPetData.put("name", "Invalid");
+        invalidPetData.put("birthDate", LocalDate.now().plusDays(1).toString()); // Future date
+        invalidPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidPetData),
+                Pet.class
+            );
+        });
+    }
+
+    @Test
+    void testUpdateExistingPet() {
+        Map<String, Object> updatedPetData = new HashMap<>();
+        updatedPetData.put("name", "Leo Updated");
+        updatedPetData.put("birthDate", LocalDate.now().minusYears(2).toString());
+        updatedPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
+
+        ResponseEntity<Pet> result = restTemplate.exchange(
+            RequestEntity.put("/owners/1/pets/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(updatedPetData),
+            Pet.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getName()).isEqualTo("Leo Updated");
+    }
 
     @Test
     void testVetWithSpecificSpecialty() {
@@ -247,63 +247,21 @@ public class PetClinicIntegrationTests {
         assertThat(hasSurgerySpecialist).isTrue();
     }
 
-//    @Test
-//    void testVisitWithInvalidDate() {
-//        Map<String, Object> invalidVisitData = new HashMap<>();
-//        invalidVisitData.put("date", LocalDate.now().plusYears(1).toString()); // Future date
-//        invalidVisitData.put("description", "Invalid future visit");
-//
-//        assertThrows(HttpClientErrorException.class, () -> {
-//            restTemplate.exchange(
-//                RequestEntity.post("/owners/1/pets/1/visits/new")
-//                    .contentType(MediaType.APPLICATION_JSON)
-//                    .body(invalidVisitData),
-//                Visit.class
-//            );
-//        });
-//    }
+    @Test
+    void testVisitWithInvalidDate() {
+        Map<String, Object> invalidVisitData = new HashMap<>();
+        invalidVisitData.put("date", LocalDate.now().plusYears(1).toString()); // Future date
+        invalidVisitData.put("description", "Invalid future visit");
 
-//    @Test
-//    void testSearchOwnersByLastName() {
-//        ResponseEntity<Owner[]> result = restTemplate.exchange(
-//            RequestEntity.get("/owners/*/lastname/Davis").build(),
-//            Owner[].class
-//        );
-//
-//        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-//        assertThat(result.getBody()).isNotNull();
-//        assertThat(result.getBody().length).isGreaterThan(0);
-//        assertThat(result.getBody()[0].getLastName()).isEqualTo("Davis");
-//    }
-
-//    @Test
-//    void testSearchOwnersByPartialLastName() {
-//        ResponseEntity<Owner[]> result = restTemplate.exchange(
-//            RequestEntity.get("/owners/*/lastname/Da").build(),
-//            Owner[].class
-//        );
-//
-//        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-//        assertThat(result.getBody()).isNotNull();
-//        assertThat(result.getBody().length).isGreaterThan(0);
-//    }
-
-//    @Test
-//    void testAddPetWithNonExistentType() {
-//        Map<String, Object> invalidPetData = new HashMap<>();
-//        invalidPetData.put("name", "TestPet");
-//        invalidPetData.put("birthDate", LocalDate.now().minusYears(1).toString());
-//        invalidPetData.put("type", new PetType() {{ setId(999); setName("unknown"); }});
-//
-//        assertThrows(HttpClientErrorException.class, () -> {
-//            restTemplate.exchange(
-//                RequestEntity.post("/owners/1/pets/new")
-//                    .contentType(MediaType.APPLICATION_JSON)
-//                    .body(invalidPetData),
-//                Pet.class
-//            );
-//        });
-//    }
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/1/visits/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidVisitData),
+                Visit.class
+            );
+        });
+    }
 
     @Test
     void testAddVisitWithConflictingSchedule() {
