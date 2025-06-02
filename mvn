@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$1" = "integ" ]; then
+    shift
+    ./mvnw test -Pintegration "$@"
+else
+    ./mvnw "$@"
+fi

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.samples.petclinic;
+package org.springframework.samples.petclinic.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,17 +44,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DisabledInAotMode
 class MySqlIntegrationTests {
 
-	@ServiceConnection
-	@Container
-	static MySQLContainer<?> container = new MySQLContainer<>("mysql:9.1");
+    @ServiceConnection
+    @Container
+    static MySQLContainer<?> container = new MySQLContainer<>("mysql:9.1");
 
-	@LocalServerPort
-	int port;
+    @LocalServerPort
+    int port;
 
-	@Autowired
-	private VetRepository vets;
+    @Autowired
+    private VetRepository vets;
 
-	@Autowired
-	private RestTemplateBuilder builder;
+    @Autowired
+    private RestTemplateBuilder builder;
 
 }
