@@ -153,6 +153,249 @@ public class PetClinicIntegrationTests {
         });
     }
 
+    @Test
+    void testCreateOwnerWithInvalidData() {
+        Map<String, Object> invalidOwnerData = new HashMap<>();
+        invalidOwnerData.put("firstName", "");  // Empty first name
+        invalidOwnerData.put("lastName", "Doe");
+        invalidOwnerData.put("address", "123 Main St");
+        invalidOwnerData.put("city", "Springfield");
+        invalidOwnerData.put("telephone", "abc"); // Invalid phone number
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidOwnerData),
+                Owner.class
+            );
+        });
+    }
+
+    @Test
+    void testUpdateExistingOwner() {
+        Map<String, Object> updatedData = new HashMap<>();
+        updatedData.put("firstName", "George");
+        updatedData.put("lastName", "Franklin-Updated");
+        updatedData.put("address", "110 W. Liberty St");
+        updatedData.put("city", "Madison");
+        updatedData.put("telephone", "6085551023");
+
+        ResponseEntity<Owner> result = restTemplate.exchange(
+            RequestEntity.put("/owners/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(updatedData),
+            Owner.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getLastName()).isEqualTo("Franklin-Updated");
+    }
+
+    @Test
+    void testAddPetWithInvalidDate() {
+        Map<String, Object> invalidPetData = new HashMap<>();
+        invalidPetData.put("name", "Invalid");
+        invalidPetData.put("birthDate", LocalDate.now().plusDays(1).toString()); // Future date
+        invalidPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidPetData),
+                Pet.class
+            );
+        });
+    }
+
+    @Test
+    void testUpdateExistingPet() {
+        Map<String, Object> updatedPetData = new HashMap<>();
+        updatedPetData.put("name", "Leo Updated");
+        updatedPetData.put("birthDate", LocalDate.now().minusYears(2).toString());
+        updatedPetData.put("type", new PetType() {{ setId(1); setName("cat"); }});
+
+        ResponseEntity<Pet> result = restTemplate.exchange(
+            RequestEntity.put("/owners/1/pets/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(updatedPetData),
+            Pet.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getName()).isEqualTo("Leo Updated");
+    }
+
+    @Test
+    void testVetWithSpecificSpecialty() {
+        ResponseEntity<Vets> result = restTemplate.exchange(
+            RequestEntity.get("/vets.json").build(),
+            Vets.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        
+        // Find a vet with surgery specialty
+        boolean hasSurgerySpecialist = result.getBody().getVetList().stream()
+            .anyMatch(vet -> vet.getSpecialties().stream()
+                .anyMatch(specialty -> "surgery".equalsIgnoreCase(specialty.getName())));
+        
+        assertThat(hasSurgerySpecialist).isTrue();
+    }
+
+    @Test
+    void testVisitWithInvalidDate() {
+        Map<String, Object> invalidVisitData = new HashMap<>();
+        invalidVisitData.put("date", LocalDate.now().plusYears(1).toString()); // Future date
+        invalidVisitData.put("description", "Invalid future visit");
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/1/visits/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidVisitData),
+                Visit.class
+            );
+        });
+    }
+
+    @Test
+    void testSearchOwnersByLastName() {
+        ResponseEntity<Owner[]> result = restTemplate.exchange(
+            RequestEntity.get("/owners/*/lastname/Davis").build(),
+            Owner[].class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().length).isGreaterThan(0);
+        assertThat(result.getBody()[0].getLastName()).isEqualTo("Davis");
+    }
+
+    @Test
+    void testSearchOwnersByPartialLastName() {
+        ResponseEntity<Owner[]> result = restTemplate.exchange(
+            RequestEntity.get("/owners/*/lastname/Da").build(),
+            Owner[].class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().length).isGreaterThan(0);
+    }
+
+    @Test
+    void testAddPetWithNonExistentType() {
+        Map<String, Object> invalidPetData = new HashMap<>();
+        invalidPetData.put("name", "TestPet");
+        invalidPetData.put("birthDate", LocalDate.now().minusYears(1).toString());
+        invalidPetData.put("type", new PetType() {{ setId(999); setName("unknown"); }});
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidPetData),
+                Pet.class
+            );
+        });
+    }
+
+    @Test
+    void testAddVisitWithConflictingSchedule() {
+        // First visit
+        Map<String, Object> visit1Data = new HashMap<>();
+        visit1Data.put("date", LocalDate.now().toString());
+        visit1Data.put("description", "Morning checkup");
+
+        ResponseEntity<Visit> result1 = restTemplate.exchange(
+            RequestEntity.post("/owners/1/pets/1/visits/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(visit1Data),
+            Visit.class
+        );
+
+        assertThat(result1.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Second visit same day
+        Map<String, Object> visit2Data = new HashMap<>();
+        visit2Data.put("date", LocalDate.now().toString());
+        visit2Data.put("description", "Afternoon checkup");
+
+        ResponseEntity<Visit> result2 = restTemplate.exchange(
+            RequestEntity.post("/owners/1/pets/1/visits/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(visit2Data),
+            Visit.class
+        );
+
+        // Should still work as multiple visits per day are allowed
+        assertThat(result2.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void testVetSpecialtyDistribution() {
+        ResponseEntity<Vets> result = restTemplate.exchange(
+            RequestEntity.get("/vets.json").build(),
+            Vets.class
+        );
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+
+        Map<String, Integer> specialtyCounts = new HashMap<>();
+        result.getBody().getVetList().forEach(vet -> 
+            vet.getSpecialties().forEach(specialty -> 
+                specialtyCounts.merge(specialty.getName(), 1, Integer::sum)
+            )
+        );
+
+        // Verify we have at least one vet for each common specialty
+        assertThat(specialtyCounts.containsKey("radiology")).isTrue();
+        assertThat(specialtyCounts.containsKey("surgery")).isTrue();
+        assertThat(specialtyCounts.containsKey("dentistry")).isTrue();
+    }
+
+    @Test
+    void testOwnerWithExtremelyLongValues() {
+        String longString = "a".repeat(100);
+        Map<String, Object> ownerData = new HashMap<>();
+        ownerData.put("firstName", longString);
+        ownerData.put("lastName", longString);
+        ownerData.put("address", longString);
+        ownerData.put("city", longString);
+        ownerData.put("telephone", "1234567890");
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ownerData),
+                Owner.class
+            );
+        });
+    }
+
+    @Test
+    void testAddVisitWithEmptyDescription() {
+        Map<String, Object> invalidVisitData = new HashMap<>();
+        invalidVisitData.put("date", LocalDate.now().toString());
+        invalidVisitData.put("description", "");
+
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.post("/owners/1/pets/1/visits/new")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(invalidVisitData),
+                Visit.class
+            );
+        });
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(PetClinicApplication.class, args);
     }

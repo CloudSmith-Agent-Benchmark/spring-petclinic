@@ -27,6 +27,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GITHUB_REF
           script: |
             # Clone repo if not already present
             if [ ! -d "/home/${{ secrets.EC2_USER }}/spring-petclinic" ]; then
@@ -34,7 +35,7 @@ jobs:
             fi
             cd spring-petclinic
             git fetch --all
-            git reset --hard origin/main
+            git reset --hard origin/${GITHUB_REF#refs/heads/}
             # Build the project
             ./mvnw clean package -DskipTests
           
