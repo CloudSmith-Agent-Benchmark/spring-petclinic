@@ -3,7 +3,9 @@ name: Deploy to AWS EC2
 on:
   push:
     branches:
-      - main
+      - '**'
+  pull_request:
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -46,3 +48,16 @@ jobs:
             cd spring-petclinic
             # Start the new jar
             nohup java -Djava.net.preferIPv4Stack=true -Dserver.address=0.0.0.0 -jar target/*.jar & disown
+            # Wait for the application to start up
+            sleep 30
+
+      - name: Run Integration Tests on EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd spring-petclinic
+            # Run integration tests
+            ./mvnw test -Dtest=PetClinicIntegrationTests
