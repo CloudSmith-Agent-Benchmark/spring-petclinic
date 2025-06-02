@@ -50,6 +50,8 @@ public class PetClinicIntegrationTests {
             .rootUri("http://localhost:" + port)
             .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
             .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .setConnectTimeout(java.time.Duration.ofMillis(100))  // Very short timeout
+            .setReadTimeout(java.time.Duration.ofMillis(100))     // Very short timeout
             .build();
     }
 
@@ -338,7 +340,10 @@ public class PetClinicIntegrationTests {
     }
 
     @Test
-    void testVetSpecialtyDistribution() {
+    void testVetSpecialtyDistribution() throws InterruptedException {
+        // Add a delay to simulate slow processing
+        Thread.sleep(200); // Sleep for 200ms, which is longer than our 100ms timeout
+        
         ResponseEntity<Vets> result = restTemplate.exchange(
             RequestEntity.get("/vets.json").build(),
             Vets.class
