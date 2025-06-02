@@ -27,28 +27,30 @@ import jakarta.validation.constraints.NotBlank;
 @MappedSuperclass
 public class Person extends BaseEntity {
 
-	@Column(name = "first_name")
-	@NotBlank
-	private String firstName;
+        @Column(name = "first_name", length = 50)
+        @NotBlank
+        @jakarta.validation.constraints.Size(max = 50, message = "First name must not be longer than 50 characters")
+        private String firstName;
 
-	@Column(name = "last_name")
-	@NotBlank
-	private String lastName;
+        @Column(name = "last_name", length = 50)
+        @NotBlank
+        @jakarta.validation.constraints.Size(max = 50, message = "Last name must not be longer than 50 characters")
+        private String lastName;
 
-	public String getFirstName() {
-		return this.firstName;
-	}
+        public String getFirstName() {
+                return this.firstName;
+        }
 
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
+        public void setFirstName(String firstName) {
+                this.firstName = firstName;
+        }
 
-	public String getLastName() {
-		return this.lastName;
-	}
+        public String getLastName() {
+                return this.lastName;
+        }
 
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
+        public void setLastName(String lastName) {
+                this.lastName = lastName;
+        }
 
 }
