@@ -1,26 +1,9 @@
-/*
- * Copyright 2012-2019 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.springframework.samples.petclinic.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +25,7 @@ import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetType;
 import org.springframework.samples.petclinic.owner.Visit;
 import org.springframework.samples.petclinic.vet.Vet;
+import org.springframework.samples.petclinic.vet.Vets;
 import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -49,124 +33,128 @@ import org.springframework.web.client.RestTemplate;
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class PetClinicIntegrationTests {
 
-        @LocalServerPort
-        int port = 8080;
+    @LocalServerPort
+    int port;
 
-        @Autowired
-        private VetRepository vets;
+    @Autowired
+    private VetRepository vets;
 
-        @Autowired
-        private RestTemplateBuilder builder;
+    @Autowired
+    private RestTemplateBuilder builder;
 
-        private RestTemplate restTemplate;
+    private RestTemplate restTemplate;
 
-        @BeforeEach
-        void setUp() {
-                this.restTemplate = builder.rootUri("http://localhost:" + port).build();
-        }
+    @BeforeEach
+    void setUp() {
+        this.restTemplate = builder
+            .rootUri("http://localhost:" + port)
+            .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .build();
+    }
 
-        @Test
-        void testFindAll() {
-                vets.findAll();
-                vets.findAll(); // served from cache
-        }
+    @Test
+    void testFindAll() {
+        vets.findAll();
+        vets.findAll(); // served from cache
+    }
 
-        @Test
-        void testOwnerDetails() {
-                ResponseEntity<Owner> result = restTemplate.exchange(
-                        RequestEntity.get("/owners/1").build(),
-                        Owner.class
-                );
-                assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(result.getBody()).isNotNull();
-                assertThat(result.getBody().getFirstName()).isEqualTo("George");
-                assertThat(result.getBody().getPets()).isNotEmpty();
-        }
+    @Test
+    void testOwnerDetails() {
+        ResponseEntity<Owner> result = restTemplate.exchange(
+            RequestEntity.get("/owners/1").build(),
+            Owner.class
+        );
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getFirstName()).isEqualTo("George");
+        assertThat(result.getBody().getPets()).isNotEmpty();
+    }
 
-        @Test
-        void testCreateNewOwner() {
-                Map<String, Object> ownerData = new HashMap<>();
-                ownerData.put("firstName", "John");
-                ownerData.put("lastName", "Doe");
-                ownerData.put("address", "123 Main St");
-                ownerData.put("city", "Springfield");
-                ownerData.put("telephone", "1234567890");
+    @Test
+    void testCreateNewOwner() {
+        Map<String, Object> ownerData = new HashMap<>();
+        ownerData.put("firstName", "John");
+        ownerData.put("lastName", "Doe");
+        ownerData.put("address", "123 Main St");
+        ownerData.put("city", "Springfield");
+        ownerData.put("telephone", "1234567890");
 
-                ResponseEntity<Owner> result = restTemplate.exchange(
-                        RequestEntity.post("/owners/new")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .body(ownerData),
-                        Owner.class
-                );
+        ResponseEntity<Owner> result = restTemplate.exchange(
+            RequestEntity.post("/owners/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ownerData),
+            Owner.class
+        );
 
-                assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(result.getBody()).isNotNull();
-                assertThat(result.getBody().getId()).isNotNull();
-                assertThat(result.getBody().getFirstName()).isEqualTo("John");
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getId()).isNotNull();
+        assertThat(result.getBody().getFirstName()).isEqualTo("John");
+    }
 
-        @Test
-        void testAddNewPetToOwner() {
-                Map<String, Object> petData = new HashMap<>();
-                petData.put("name", "Fluffy");
-                petData.put("birthDate", LocalDate.now().toString());
-                petData.put("type", new PetType() {{ setId(1); setName("cat"); }});
+    @Test
+    void testAddNewPetToOwner() {
+        Map<String, Object> petData = new HashMap<>();
+        petData.put("name", "Fluffy");
+        petData.put("birthDate", LocalDate.now().toString());
+        petData.put("type", new PetType() {{ setId(1); setName("cat"); }});
 
-                ResponseEntity<Pet> result = restTemplate.exchange(
-                        RequestEntity.post("/owners/1/pets/new")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .body(petData),
-                        Pet.class
-                );
+        ResponseEntity<Pet> result = restTemplate.exchange(
+            RequestEntity.post("/owners/1/pets/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(petData),
+            Pet.class
+        );
 
-                assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(result.getBody()).isNotNull();
-                assertThat(result.getBody().getName()).isEqualTo("Fluffy");
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getName()).isEqualTo("Fluffy");
+    }
 
-        @Test
-        void testAddVisitToPet() {
-                Map<String, Object> visitData = new HashMap<>();
-                visitData.put("date", LocalDate.now().toString());
-                visitData.put("description", "Regular checkup");
+    @Test
+    void testAddVisitToPet() {
+        Map<String, Object> visitData = new HashMap<>();
+        visitData.put("date", LocalDate.now().toString());
+        visitData.put("description", "Regular checkup");
 
-                ResponseEntity<Visit> result = restTemplate.exchange(
-                        RequestEntity.post("/owners/1/pets/1/visits/new")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .body(visitData),
-                        Visit.class
-                );
+        ResponseEntity<Visit> result = restTemplate.exchange(
+            RequestEntity.post("/owners/1/pets/1/visits/new")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(visitData),
+            Visit.class
+        );
 
-                assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(result.getBody()).isNotNull();
-                assertThat(result.getBody().getDescription()).isEqualTo("Regular checkup");
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getDescription()).isEqualTo("Regular checkup");
+    }
 
-        @Test
-        void testListVetsWithSpecialties() {
-                ResponseEntity<Vet[]> result = restTemplate.exchange(
-                        RequestEntity.get("/vets.json").build(),
-                        Vet[].class
-                );
+    @Test
+    void testListVetsWithSpecialties() {
+        ResponseEntity<Vets> result = restTemplate.exchange(
+            RequestEntity.get("/vets.json").build(),
+            Vets.class
+        );
 
-                assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-                assertThat(result.getBody()).isNotNull();
-                assertThat(result.getBody()).hasSizeGreaterThan(0);
-                assertThat(result.getBody()[0].getSpecialties()).isNotNull();
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getVetList()).isNotEmpty();
+        assertThat(result.getBody().getVetList().get(0).getSpecialties()).isNotNull();
+    }
 
-        @Test
-        void testNonExistentOwner() {
-                assertThrows(HttpClientErrorException.class, () -> {
-                        restTemplate.exchange(
-                                RequestEntity.get("/owners/999").build(),
-                                Owner.class
-                        );
-                });
-        }
+    @Test
+    void testNonExistentOwner() {
+        assertThrows(HttpClientErrorException.class, () -> {
+            restTemplate.exchange(
+                RequestEntity.get("/owners/999").build(),
+                Owner.class
+            );
+        });
+    }
 
-        public static void main(String[] args) {
-                SpringApplication.run(PetClinicApplication.class, args);
-        }
+    public static void main(String[] args) {
+        SpringApplication.run(PetClinicApplication.class, args);
+    }
 
 }
