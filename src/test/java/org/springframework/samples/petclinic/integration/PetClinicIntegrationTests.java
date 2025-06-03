@@ -32,10 +32,11 @@ import org.springframework.samples.petclinic.vet.Specialty;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-@SpringBootTest(webEnvironment = WebEnvironment.DEFINED_PORT, properties = "server.port=8080")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class PetClinicIntegrationTests {
 
-    private static final int SERVER_PORT = 8080;
+	@LocalServerPort
+	int port;
 
     @Autowired
     private VetRepository vets;
@@ -48,7 +49,7 @@ public class PetClinicIntegrationTests {
     @BeforeEach
     void setUp() {
         this.restTemplate = builder
-            .rootUri("http://localhost:" + SERVER_PORT)
+            .rootUri("http://localhost:" + port)
             .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
             .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
             .build();
