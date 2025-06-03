@@ -15,15 +15,21 @@
  */
 package org.springframework.samples.petclinic.vet;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * @author Juergen Hoeller
@@ -34,35 +40,47 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RestController
 class VetController {
 
-	private final VetRepository vetRepository;
+        private final VetRepository vetRepository;
 
-	public VetController(VetRepository vetRepository) {
-		this.vetRepository = vetRepository;
-	}
+        public VetController(VetRepository vetRepository) {
+                this.vetRepository = vetRepository;
+        }
 
-	@GetMapping(value = "/vets.html", produces = MediaType.TEXT_HTML_VALUE)
-	public String showVetList(@RequestParam(defaultValue = "1") int page) {
-		// Here we are returning an object of type 'Vets' rather than a collection of Vet
-		// objects so it is simpler for Object-Xml mapping
-		Vets vets = new Vets();
-		Page<Vet> paginated = findPaginated(page);
-		vets.getVetList().addAll(paginated.toList());
-		return "vets/vetList";
-	}
+        @GetMapping(value = "/vets.html", produces = MediaType.TEXT_HTML_VALUE)
+        public String showVetList(@RequestParam(defaultValue = "1") int page) {
+                // Here we are returning an object of type 'Vets' rather than a collection of Vet
+                // objects so it is simpler for Object-Xml mapping
+                Vets vets = new Vets();
+                Page<Vet> paginated = findPaginated(page);
+                vets.getVetList().addAll(paginated.toList());
+                return "vets/vetList";
+        }
 
-	@GetMapping(value = { "/vets", "/vets.json" }, produces = MediaType.APPLICATION_JSON_VALUE)
-	public Vets showResourcesVetList() {
-		// Here we are returning an object of type 'Vets' rather than a collection of Vet
-		// objects so it is simpler for JSon/Object mapping
-		Vets vets = new Vets();
-		vets.getVetList().addAll(this.vetRepository.findAll());
-		return vets;
-	}
+        @GetMapping(value = { "/vets", "/vets.json" }, produces = MediaType.APPLICATION_JSON_VALUE)
+        public Vets showResourcesVetList() {
+                // Here we are returning an object of type 'Vets' rather than a collection of Vet
+                // objects so it is simpler for JSon/Object mapping
+                Vets vets = new Vets();
+                vets.getVetList().addAll(this.vetRepository.findAll());
+                return vets;
+        }
 
-	private Page<Vet> findPaginated(int page) {
-		int pageSize = 5;
-		Pageable pageable = PageRequest.of(page - 1, pageSize);
-		return vetRepository.findAll(pageable);
-	}
+        @PostMapping(value = "/vets/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Vet> addVet(@RequestBody Vet vet) {
+                // Check for duplicate vet name
+                Collection<Vet> existingVets = this.vetRepository.findByFirstNameAndLastName(vet.getFirstName(), vet.getLastName());
+                if (!existingVets.isEmpty()) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "A vet with this name already exists");
+                }
+
+                Vet savedVet = this.vetRepository.save(vet);
+                return ResponseEntity.ok(savedVet);
+        }
+
+        private Page<Vet> findPaginated(int page) {
+                int pageSize = 5;
+                Pageable pageable = PageRequest.of(page - 1, pageSize);
+                return vetRepository.findAll(pageable);
+        }
 
 }

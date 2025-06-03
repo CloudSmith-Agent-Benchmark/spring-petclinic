@@ -37,22 +37,38 @@ import java.util.Collection;
  */
 public interface VetRepository extends Repository<Vet, Integer> {
 
-	/**
-	 * Retrieve all <code>Vet</code>s from the data store.
-	 * @return a <code>Collection</code> of <code>Vet</code>s
-	 */
-	@Transactional(readOnly = true)
-	@Cacheable("vets")
-	Collection<Vet> findAll() throws DataAccessException;
+        /**
+         * Retrieve all <code>Vet</code>s from the data store.
+         * @return a <code>Collection</code> of <code>Vet</code>s
+         */
+        @Transactional(readOnly = true)
+        @Cacheable("vets")
+        Collection<Vet> findAll() throws DataAccessException;
 
-	/**
-	 * Retrieve all <code>Vet</code>s from data store in Pages
-	 * @param pageable
-	 * @return
-	 * @throws DataAccessException
-	 */
-	@Transactional(readOnly = true)
-	@Cacheable("vets")
-	Page<Vet> findAll(Pageable pageable) throws DataAccessException;
+        /**
+         * Retrieve all <code>Vet</code>s from data store in Pages
+         * @param pageable
+         * @return
+         * @throws DataAccessException
+         */
+        @Transactional(readOnly = true)
+        @Cacheable("vets")
+        Page<Vet> findAll(Pageable pageable) throws DataAccessException;
+
+        /**
+         * Save a <code>Vet</code> to the data store, either inserting or updating it.
+         * @param vet the <code>Vet</code> to save
+         */
+        @Transactional
+        Vet save(Vet vet) throws DataAccessException;
+
+        /**
+         * Find a vet by first name and last name
+         * @param firstName first name to search for
+         * @param lastName last name to search for
+         * @return the vet if found
+         */
+        @Transactional(readOnly = true)
+        Collection<Vet> findByFirstNameAndLastName(String firstName, String lastName) throws DataAccessException;
 
 }
