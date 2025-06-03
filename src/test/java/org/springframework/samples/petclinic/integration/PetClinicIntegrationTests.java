@@ -396,6 +396,24 @@ public class PetClinicIntegrationTests {
         });
     }
 
+    @Test
+    void testTpsLimitExceeded() {
+        // Create test data for a visit
+        Map<String, Object> visitData = new HashMap<>();
+        visitData.put("date", LocalDate.now().toString());
+        visitData.put("description", "Quick checkup");
+
+		for (int i = 0; i < 15; i++) {
+			restTemplate.exchange(
+				RequestEntity.post("/owners/1/pets/1/visits/new")
+					.contentType(MediaType.APPLICATION_JSON)
+					.body(visitData),
+				Visit.class
+			);
+			// No delay between requests to ensure we exceed TPS limit
+		}
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(PetClinicApplication.class, args);
     }
