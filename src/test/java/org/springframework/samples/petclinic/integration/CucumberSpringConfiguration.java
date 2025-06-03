@@ -1,10 +1,10 @@
 package org.springframework.samples.petclinic.integration;
 
-import io.cucumber.spring.CucumberContextConfiguration;
+import cucumber.api.CucumberOptions;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 
-@CucumberContextConfiguration
+@CucumberOptions(features = "src/test/resources/features")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class CucumberSpringConfiguration {
 }

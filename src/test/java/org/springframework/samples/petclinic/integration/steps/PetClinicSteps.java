@@ -23,11 +23,11 @@ import org.springframework.samples.petclinic.vet.Vets;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import io.cucumber.datatable.DataTable;
-import io.cucumber.java.Before;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
+import cucumber.api.DataTable;
+import cucumber.api.java.Before;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import cucumber.api.java.en.When;
 
 public class PetClinicSteps {
 
@@ -83,7 +83,7 @@ public class PetClinicSteps {
 
     @When("I create a new owner with the following details:")
     public void iCreateANewOwnerWithTheFollowingDetails(DataTable dataTable) {
-        List<Map<String, String>> rows = dataTable.asMaps();
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         Map<String, String> ownerData = rows.get(0);
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -124,7 +124,7 @@ public class PetClinicSteps {
 
     @When("I add a new pet to owner {int} with the following details:")
     public void iAddANewPetToOwnerWithTheFollowingDetails(Integer ownerId, DataTable dataTable) {
-        List<Map<String, String>> rows = dataTable.asMaps();
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         Map<String, String> petData = rows.get(0);
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -159,7 +159,7 @@ public class PetClinicSteps {
 
     @When("I add a visit to pet {int} of owner {int} with the following details:")
     public void iAddAVisitToPetOfOwnerWithTheFollowingDetails(Integer petId, Integer ownerId, DataTable dataTable) {
-        List<Map<String, String>> rows = dataTable.asMaps();
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         Map<String, String> visitData = rows.get(0);
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -221,7 +221,7 @@ public class PetClinicSteps {
 
     @When("I try to create an owner with invalid data:")
     public void iTryToCreateAnOwnerWithInvalidData(DataTable dataTable) {
-        List<Map<String, String>> rows = dataTable.asMaps();
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         Map<String, String> ownerData = rows.get(0);
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -245,7 +245,7 @@ public class PetClinicSteps {
 
     @When("I try to add a visit with empty description:")
     public void iTryToAddAVisitWithEmptyDescription(DataTable dataTable) {
-        List<Map<String, String>> rows = dataTable.asMaps();
+        List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
         Map<String, String> visitData = rows.get(0);
 
         Map<String, Object> requestBody = new HashMap<>();
