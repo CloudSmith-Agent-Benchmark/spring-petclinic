@@ -61,4 +61,5 @@ jobs:
           script: |
             cd spring-petclinic
             # Run integration tests
-            ./mvnw test -Dtest=PetClinicIntegrationTests
+            ./mvnw test -Dtest=CucumberIntegrationTest
+
