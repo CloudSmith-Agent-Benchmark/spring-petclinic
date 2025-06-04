@@ -21,9 +21,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.samples.petclinic.config.FeatureFlagConfig;
+import org.springframework.samples.petclinic.config.FeatureDisabledException;
 
 /**
  * @author Juergen Hoeller
@@ -34,35 +37,43 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RestController
 class VetController {
 
-	private final VetRepository vetRepository;
+        private final VetRepository vetRepository;
+        private final FeatureFlagConfig featureFlagConfig;
 
-	public VetController(VetRepository vetRepository) {
-		this.vetRepository = vetRepository;
-	}
+        public VetController(VetRepository vetRepository, FeatureFlagConfig featureFlagConfig) {
+                this.vetRepository = vetRepository;
+                this.featureFlagConfig = featureFlagConfig;
+        }
 
-	@GetMapping(value = "/vets.html", produces = MediaType.TEXT_HTML_VALUE)
-	public String showVetList(@RequestParam(defaultValue = "1") int page) {
-		// Here we are returning an object of type 'Vets' rather than a collection of Vet
-		// objects so it is simpler for Object-Xml mapping
-		Vets vets = new Vets();
-		Page<Vet> paginated = findPaginated(page);
-		vets.getVetList().addAll(paginated.toList());
-		return "vets/vetList";
-	}
+        @GetMapping(value = "/vets.html", produces = MediaType.TEXT_HTML_VALUE)
+        public ResponseEntity<String> showVetList(@RequestParam(defaultValue = "1") int page) {
+                if (!featureFlagConfig.isVetManagement()) {
+                        throw new FeatureDisabledException("Vet management feature is disabled");
+                }
+                // Here we are returning an object of type 'Vets' rather than a collection of Vet
+                // objects so it is simpler for Object-Xml mapping
+                Vets vets = new Vets();
+                Page<Vet> paginated = findPaginated(page);
+                vets.getVetList().addAll(paginated.toList());
+                return ResponseEntity.ok("vets/vetList");
+        }
 
-	@GetMapping(value = { "/vets", "/vets.json" }, produces = MediaType.APPLICATION_JSON_VALUE)
-	public Vets showResourcesVetList() {
-		// Here we are returning an object of type 'Vets' rather than a collection of Vet
-		// objects so it is simpler for JSon/Object mapping
-		Vets vets = new Vets();
-		vets.getVetList().addAll(this.vetRepository.findAll());
-		return vets;
-	}
+        @GetMapping(value = { "/vets", "/vets.json" }, produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Vets> showResourcesVetList() {
+                if (!featureFlagConfig.isVetManagement()) {
+                        throw new FeatureDisabledException("Vet management feature is disabled");
+                }
+                // Here we are returning an object of type 'Vets' rather than a collection of Vet
+                // objects so it is simpler for JSon/Object mapping
+                Vets vets = new Vets();
+                vets.getVetList().addAll(this.vetRepository.findAll());
+                return ResponseEntity.ok(vets);
+        }
 
-	private Page<Vet> findPaginated(int page) {
-		int pageSize = 5;
-		Pageable pageable = PageRequest.of(page - 1, pageSize);
-		return vetRepository.findAll(pageable);
-	}
+        private Page<Vet> findPaginated(int page) {
+                int pageSize = 5;
+                Pageable pageable = PageRequest.of(page - 1, pageSize);
+                return vetRepository.findAll(pageable);
+        }
 
 }

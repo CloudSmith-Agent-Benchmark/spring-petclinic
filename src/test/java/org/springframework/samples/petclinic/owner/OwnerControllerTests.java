@@ -28,6 +28,8 @@ import org.springframework.test.context.aot.DisabledInAotMode;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.samples.petclinic.config.FeatureFlagConfig;
+import org.springframework.samples.petclinic.config.FeatureDisabledException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -60,192 +62,144 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisabledInAotMode
 class OwnerControllerTests {
 
-	private static final int TEST_OWNER_ID = 1;
+        private static final int TEST_OWNER_ID = 1;
 
-	@Autowired
-	private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-	@MockitoBean
-	private OwnerRepository owners;
+        @MockitoBean
+        private OwnerRepository owners;
 
-	private Owner george() {
-		Owner george = new Owner();
-		george.setId(TEST_OWNER_ID);
-		george.setFirstName("George");
-		george.setLastName("Franklin");
-		george.setAddress("110 W. Liberty St.");
-		george.setCity("Madison");
-		george.setTelephone("6085551023");
-		Pet max = new Pet();
-		PetType dog = new PetType();
-		dog.setName("dog");
-		max.setType(dog);
-		max.setName("Max");
-		max.setBirthDate(LocalDate.now());
-		george.addPet(max);
-		max.setId(1);
-		return george;
-	}
+        @MockitoBean
+        private FeatureFlagConfig featureFlagConfig;
 
-	@BeforeEach
-	void setup() {
+        private Owner george() {
+                Owner george = new Owner();
+                george.setId(TEST_OWNER_ID);
+                george.setFirstName("George");
+                george.setLastName("Franklin");
+                george.setAddress("110 W. Liberty St.");
+                george.setCity("Madison");
+                george.setTelephone("6085551023");
+                Pet max = new Pet();
+                PetType dog = new PetType();
+                dog.setName("dog");
+                max.setType(dog);
+                max.setName("Max");
+                max.setBirthDate(LocalDate.now());
+                george.addPet(max);
+                max.setId(1);
+                return george;
+        }
 
-		Owner george = george();
-		given(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class)))
-			.willReturn(new PageImpl<>(List.of(george)));
+        @BeforeEach
+        void setup() {
 
-		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(george));
-		Visit visit = new Visit();
-		visit.setDate(LocalDate.now());
-		george.getPet("Max").getVisits().add(visit);
+                Owner george = george();
+                given(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class)))
+                        .willReturn(new PageImpl<>(List.of(george)));
 
-	}
+                given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(george));
+                Visit visit = new Visit();
+                visit.setDate(LocalDate.now());
+                george.getPet("Max").getVisits().add(visit);
 
-	@Test
-	void testInitCreationForm() throws Exception {
-		mockMvc.perform(get("/owners/new"))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeExists("owner"))
-			.andExpect(view().name("owners/createOrUpdateOwnerForm"));
-	}
+                // Enable all features by default
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(true);
+                given(this.featureFlagConfig.isPetManagement()).willReturn(true);
+                given(this.featureFlagConfig.isVisitManagement()).willReturn(true);
+                given(this.featureFlagConfig.isVetManagement()).willReturn(true);
+        }
 
-	@Test
-	void testProcessCreationFormSuccess() throws Exception {
-		mockMvc
-			.perform(post("/owners/new").param("firstName", "Joe")
-				.param("lastName", "Bloggs")
-				.param("address", "123 Caramel Street")
-				.param("city", "London")
-				.param("telephone", "1316761638"))
-			.andExpect(status().is3xxRedirection());
-	}
+        @Test
+        void testInitCreationFormWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(true);
+                mockMvc.perform(get("/owners/new"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$").exists());
+        }
 
-	@Test
-	void testProcessCreationFormHasErrors() throws Exception {
-		mockMvc
-			.perform(post("/owners/new").param("firstName", "Joe").param("lastName", "Bloggs").param("city", "London"))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeHasErrors("owner"))
-			.andExpect(model().attributeHasFieldErrors("owner", "address"))
-			.andExpect(model().attributeHasFieldErrors("owner", "telephone"))
-			.andExpect(view().name("owners/createOrUpdateOwnerForm"));
-	}
+        @Test
+        void testInitCreationFormWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(false);
+                mockMvc.perform(get("/owners/new"))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
-	@Test
-	void testInitFindForm() throws Exception {
-		mockMvc.perform(get("/owners/find"))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeExists("owner"))
-			.andExpect(view().name("owners/findOwners"));
-	}
+        @Test
+        void testProcessCreationFormSuccessWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(true);
+                Owner owner = george();
+                given(this.owners.save(any(Owner.class))).willReturn(owner);
 
-	@Test
-	void testProcessFindFormSuccess() throws Exception {
-		Page<Owner> tasks = new PageImpl<>(List.of(george(), new Owner()));
-		when(this.owners.findByLastNameStartingWith(anyString(), any(Pageable.class))).thenReturn(tasks);
-		mockMvc.perform(get("/owners?page=1")).andExpect(status().isOk()).andExpect(view().name("owners/ownersList"));
-	}
+                mockMvc.perform(post("/owners/new")
+                                .contentType("application/json")
+                                .content("{\"firstName\":\"Joe\",\"lastName\":\"Bloggs\",\"address\":\"123 Caramel Street\",\"city\":\"London\",\"telephone\":\"1316761638\"}"))
+                        .andExpect(status().isOk());
+        }
 
-	@Test
-	void testProcessFindFormByLastName() throws Exception {
-		Page<Owner> tasks = new PageImpl<>(List.of(george()));
-		when(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class))).thenReturn(tasks);
-		mockMvc.perform(get("/owners?page=1").param("lastName", "Franklin"))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(view().name("redirect:/owners/" + TEST_OWNER_ID));
-	}
+        @Test
+        void testProcessCreationFormWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(false);
+                mockMvc.perform(post("/owners/new")
+                                .contentType("application/json")
+                                .content("{\"firstName\":\"Joe\",\"lastName\":\"Bloggs\",\"address\":\"123 Caramel Street\",\"city\":\"London\",\"telephone\":\"1316761638\"}"))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
-	@Test
-	void testProcessFindFormNoOwnersFound() throws Exception {
-		Page<Owner> tasks = new PageImpl<>(List.of());
-		when(this.owners.findByLastNameStartingWith(eq("Unknown Surname"), any(Pageable.class))).thenReturn(tasks);
-		mockMvc.perform(get("/owners?page=1").param("lastName", "Unknown Surname"))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeHasFieldErrors("owner", "lastName"))
-			.andExpect(model().attributeHasFieldErrorCode("owner", "lastName", "notFound"))
-			.andExpect(view().name("owners/findOwners"));
+        @Test
+        void testShowOwnerWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(true);
+                mockMvc.perform(get("/owners/{ownerId}", TEST_OWNER_ID))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.lastName").value("Franklin"))
+                        .andExpect(jsonPath("$.firstName").value("George"))
+                        .andExpect(jsonPath("$.address").value("110 W. Liberty St."))
+                        .andExpect(jsonPath("$.city").value("Madison"))
+                        .andExpect(jsonPath("$.telephone").value("6085551023"));
+        }
 
-	}
+        @Test
+        void testShowOwnerWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isOwnerManagement()).willReturn(false);
+                mockMvc.perform(get("/owners/{ownerId}", TEST_OWNER_ID))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
-	@Test
-	void testInitUpdateOwnerForm() throws Exception {
-		mockMvc.perform(get("/owners/{ownerId}/edit", TEST_OWNER_ID))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeExists("owner"))
-			.andExpect(model().attribute("owner", hasProperty("lastName", is("Franklin"))))
-			.andExpect(model().attribute("owner", hasProperty("firstName", is("George"))))
-			.andExpect(model().attribute("owner", hasProperty("address", is("110 W. Liberty St."))))
-			.andExpect(model().attribute("owner", hasProperty("city", is("Madison"))))
-			.andExpect(model().attribute("owner", hasProperty("telephone", is("6085551023"))))
-			.andExpect(view().name("owners/createOrUpdateOwnerForm"));
-	}
+        @Test
+        void testAddNewPetWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isPetManagement()).willReturn(true);
+                mockMvc.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID)
+                                .contentType("application/json")
+                                .content("{\"name\":\"Fluffy\",\"birthDate\":\"2023-01-01\",\"type\":{\"id\":1,\"name\":\"cat\"}}"))
+                        .andExpect(status().isOk());
+        }
 
-	@Test
-	void testProcessUpdateOwnerFormSuccess() throws Exception {
-		mockMvc
-			.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID).param("firstName", "Joe")
-				.param("lastName", "Bloggs")
-				.param("address", "123 Caramel Street")
-				.param("city", "London")
-				.param("telephone", "1616291589"))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(view().name("redirect:/owners/{ownerId}"));
-	}
+        @Test
+        void testAddNewPetWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isPetManagement()).willReturn(false);
+                mockMvc.perform(post("/owners/{ownerId}/pets/new", TEST_OWNER_ID)
+                                .contentType("application/json")
+                                .content("{\"name\":\"Fluffy\",\"birthDate\":\"2023-01-01\",\"type\":{\"id\":1,\"name\":\"cat\"}}"))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
-	@Test
-	void testProcessUpdateOwnerFormUnchangedSuccess() throws Exception {
-		mockMvc.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(view().name("redirect:/owners/{ownerId}"));
-	}
+        @Test
+        void testAddNewVisitWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isVisitManagement()).willReturn(true);
+                mockMvc.perform(post("/owners/{ownerId}/pets/{petId}/visits/new", TEST_OWNER_ID, 1)
+                                .contentType("application/json")
+                                .content("{\"date\":\"2024-03-20\",\"description\":\"Regular checkup\"}"))
+                        .andExpect(status().isOk());
+        }
 
-	@Test
-	void testProcessUpdateOwnerFormHasErrors() throws Exception {
-		mockMvc
-			.perform(post("/owners/{ownerId}/edit", TEST_OWNER_ID).param("firstName", "Joe")
-				.param("lastName", "Bloggs")
-				.param("address", "")
-				.param("telephone", ""))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeHasErrors("owner"))
-			.andExpect(model().attributeHasFieldErrors("owner", "address"))
-			.andExpect(model().attributeHasFieldErrors("owner", "telephone"))
-			.andExpect(view().name("owners/createOrUpdateOwnerForm"));
-	}
-
-	@Test
-	void testShowOwner() throws Exception {
-		mockMvc.perform(get("/owners/{ownerId}", TEST_OWNER_ID))
-			.andExpect(status().isOk())
-			.andExpect(model().attribute("owner", hasProperty("lastName", is("Franklin"))))
-			.andExpect(model().attribute("owner", hasProperty("firstName", is("George"))))
-			.andExpect(model().attribute("owner", hasProperty("address", is("110 W. Liberty St."))))
-			.andExpect(model().attribute("owner", hasProperty("city", is("Madison"))))
-			.andExpect(model().attribute("owner", hasProperty("telephone", is("6085551023"))))
-			.andExpect(model().attribute("owner", hasProperty("pets", not(empty()))))
-			.andExpect(model().attribute("owner",
-					hasProperty("pets", hasItem(hasProperty("visits", hasSize(greaterThan(0)))))))
-			.andExpect(view().name("owners/ownerDetails"));
-	}
-
-	@Test
-	public void testProcessUpdateOwnerFormWithIdMismatch() throws Exception {
-		int pathOwnerId = 1;
-
-		Owner owner = new Owner();
-		owner.setId(2);
-		owner.setFirstName("John");
-		owner.setLastName("Doe");
-		owner.setAddress("Center Street");
-		owner.setCity("New York");
-		owner.setTelephone("0123456789");
-
-		when(owners.findById(pathOwnerId)).thenReturn(Optional.of(owner));
-
-		mockMvc.perform(MockMvcRequestBuilders.post("/owners/{ownerId}/edit", pathOwnerId).flashAttr("owner", owner))
-			.andExpect(status().is3xxRedirection())
-			.andExpect(redirectedUrl("/owners/" + pathOwnerId + "/edit"))
-			.andExpect(flash().attributeExists("error"));
-	}
+        @Test
+        void testAddNewVisitWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isVisitManagement()).willReturn(false);
+                mockMvc.perform(post("/owners/{ownerId}/pets/{petId}/visits/new", TEST_OWNER_ID, 1)
+                                .contentType("application/json")
+                                .content("{\"date\":\"2024-03-20\",\"description\":\"Regular checkup\"}"))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
 }

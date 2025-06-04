@@ -26,6 +26,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.BindingResult;
+import org.springframework.samples.petclinic.config.FeatureFlagConfig;
+import org.springframework.samples.petclinic.config.FeatureDisabledException;
 
 import jakarta.validation.Valid;
 
@@ -39,75 +41,92 @@ import jakarta.validation.Valid;
 @RequestMapping("/owners")
 class OwnerController {
 
-	private final OwnerRepository owners;
+        private final OwnerRepository owners;
+        private final FeatureFlagConfig featureFlagConfig;
 
-	public OwnerController(OwnerRepository owners) {
-		this.owners = owners;
-	}
+        public OwnerController(OwnerRepository owners, FeatureFlagConfig featureFlagConfig) {
+                this.owners = owners;
+                this.featureFlagConfig = featureFlagConfig;
+        }
 
-	@GetMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE)
-	public Owner initCreationForm() {
-		return new Owner();
-	}
+        @GetMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Owner> initCreationForm() {
+                if (!featureFlagConfig.isOwnerManagement()) {
+                        throw new FeatureDisabledException("Owner management feature is disabled");
+                }
+                return ResponseEntity.ok(new Owner());
+        }
 
-	@PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Owner> processCreationForm(@Valid @RequestBody Owner owner, BindingResult result) {
-		if (result.hasErrors()) {
-			return ResponseEntity.badRequest().build();
-		}
-		Owner savedOwner = this.owners.save(owner);
-		return ResponseEntity.ok(savedOwner);
-	}
+        @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Owner> processCreationForm(@Valid @RequestBody Owner owner, BindingResult result) {
+                if (!featureFlagConfig.isOwnerManagement()) {
+                        throw new FeatureDisabledException("Owner management feature is disabled");
+                }
+                if (result.hasErrors()) {
+                        return ResponseEntity.badRequest().build();
+                }
+                Owner savedOwner = this.owners.save(owner);
+                return ResponseEntity.ok(savedOwner);
+        }
 
-	@GetMapping(value = "/{ownerId}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Owner> showOwner(@PathVariable("ownerId") int ownerId) {
-		Optional<Owner> owner = this.owners.findById(ownerId);
-		if (!owner.isPresent()) {
-			return ResponseEntity.notFound().build();
-		}
-		return ResponseEntity.ok(owner.get());
-	}
+        @GetMapping(value = "/{ownerId}", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Owner> showOwner(@PathVariable("ownerId") int ownerId) {
+                if (!featureFlagConfig.isOwnerManagement()) {
+                        throw new FeatureDisabledException("Owner management feature is disabled");
+                }
+                Optional<Owner> owner = this.owners.findById(ownerId);
+                if (!owner.isPresent()) {
+                        return ResponseEntity.notFound().build();
+                }
+                return ResponseEntity.ok(owner.get());
+        }
 
-	@PostMapping(value = "/{ownerId}/pets/new", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Pet> processNewPetForm(@PathVariable("ownerId") int ownerId, @Valid @RequestBody Pet pet, BindingResult result) {
-		if (result.hasErrors()) {
-			return ResponseEntity.badRequest().build();
-		}
+        @PostMapping(value = "/{ownerId}/pets/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Pet> processNewPetForm(@PathVariable("ownerId") int ownerId, @Valid @RequestBody Pet pet, BindingResult result) {
+                if (!featureFlagConfig.isPetManagement()) {
+                        throw new FeatureDisabledException("Pet management feature is disabled");
+                }
+                if (result.hasErrors()) {
+                        return ResponseEntity.badRequest().build();
+                }
 
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		if (!optionalOwner.isPresent()) {
-			return ResponseEntity.notFound().build();
-		}
+                Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+                if (!optionalOwner.isPresent()) {
+                        return ResponseEntity.notFound().build();
+                }
 
-		Owner owner = optionalOwner.get();
-		owner.addPet(pet);
-		this.owners.save(owner);
+                Owner owner = optionalOwner.get();
+                owner.addPet(pet);
+                this.owners.save(owner);
 
-		return ResponseEntity.ok(pet);
-	}
+                return ResponseEntity.ok(pet);
+        }
 
-	@PostMapping(value = "/{ownerId}/pets/{petId}/visits/new", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Visit> processNewVisitForm(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId,
-			@Valid @RequestBody Visit visit, BindingResult result) {
-		if (result.hasErrors()) {
-			return ResponseEntity.badRequest().build();
-		}
+        @PostMapping(value = "/{ownerId}/pets/{petId}/visits/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        public ResponseEntity<Visit> processNewVisitForm(@PathVariable("ownerId") int ownerId, @PathVariable("petId") int petId,
+                        @Valid @RequestBody Visit visit, BindingResult result) {
+                if (!featureFlagConfig.isVisitManagement()) {
+                        throw new FeatureDisabledException("Visit management feature is disabled");
+                }
+                if (result.hasErrors()) {
+                        return ResponseEntity.badRequest().build();
+                }
 
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		if (!optionalOwner.isPresent()) {
-			return ResponseEntity.notFound().build();
-		}
+                Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+                if (!optionalOwner.isPresent()) {
+                        return ResponseEntity.notFound().build();
+                }
 
-		Owner owner = optionalOwner.get();
-		Pet pet = owner.getPet(petId);
-		if (pet == null) {
-			return ResponseEntity.notFound().build();
-		}
+                Owner owner = optionalOwner.get();
+                Pet pet = owner.getPet(petId);
+                if (pet == null) {
+                        return ResponseEntity.notFound().build();
+                }
 
-		pet.addVisit(visit);
-		this.owners.save(owner);
+                pet.addVisit(visit);
+                this.owners.save(owner);
 
-		return ResponseEntity.ok(visit);
-	}
+                return ResponseEntity.ok(visit);
+        }
 
 }

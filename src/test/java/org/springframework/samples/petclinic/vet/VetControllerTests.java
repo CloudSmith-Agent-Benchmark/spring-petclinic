@@ -30,6 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.samples.petclinic.config.FeatureFlagConfig;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -45,56 +46,73 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisabledInAotMode
 class VetControllerTests {
 
-	@Autowired
-	private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-	@MockitoBean
-	private VetRepository vets;
+        @MockitoBean
+        private VetRepository vets;
 
-	private Vet james() {
-		Vet james = new Vet();
-		james.setFirstName("James");
-		james.setLastName("Carter");
-		james.setId(1);
-		return james;
-	}
+        @MockitoBean
+        private FeatureFlagConfig featureFlagConfig;
 
-	private Vet helen() {
-		Vet helen = new Vet();
-		helen.setFirstName("Helen");
-		helen.setLastName("Leary");
-		helen.setId(2);
-		Specialty radiology = new Specialty();
-		radiology.setId(1);
-		radiology.setName("radiology");
-		helen.addSpecialty(radiology);
-		return helen;
-	}
+        private Vet james() {
+                Vet james = new Vet();
+                james.setFirstName("James");
+                james.setLastName("Carter");
+                james.setId(1);
+                return james;
+        }
 
-	@BeforeEach
-	void setup() {
-		given(this.vets.findAll()).willReturn(Lists.newArrayList(james(), helen()));
-		given(this.vets.findAll(any(Pageable.class)))
-			.willReturn(new PageImpl<Vet>(Lists.newArrayList(james(), helen())));
+        private Vet helen() {
+                Vet helen = new Vet();
+                helen.setFirstName("Helen");
+                helen.setLastName("Leary");
+                helen.setId(2);
+                Specialty radiology = new Specialty();
+                radiology.setId(1);
+                radiology.setName("radiology");
+                helen.addSpecialty(radiology);
+                return helen;
+        }
 
-	}
+        @BeforeEach
+        void setup() {
+                given(this.vets.findAll()).willReturn(Lists.newArrayList(james(), helen()));
+                given(this.vets.findAll(any(Pageable.class)))
+                        .willReturn(new PageImpl<Vet>(Lists.newArrayList(james(), helen())));
+                given(this.featureFlagConfig.isVetManagement()).willReturn(true);
+        }
 
-	@Test
-	void testShowVetListHtml() throws Exception {
+        @Test
+        void testShowVetListHtmlWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isVetManagement()).willReturn(true);
+                mockMvc.perform(MockMvcRequestBuilders.get("/vets.html?page=1"))
+                        .andExpect(status().isOk())
+                        .andExpect(model().attributeExists("listVets"))
+                        .andExpect(view().name("vets/vetList"));
+        }
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/vets.html?page=1"))
-			.andExpect(status().isOk())
-			.andExpect(model().attributeExists("listVets"))
-			.andExpect(view().name("vets/vetList"));
+        @Test
+        void testShowVetListHtmlWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isVetManagement()).willReturn(false);
+                mockMvc.perform(MockMvcRequestBuilders.get("/vets.html?page=1"))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
-	}
+        @Test
+        void testShowResourcesVetListWithFeatureEnabled() throws Exception {
+                given(this.featureFlagConfig.isVetManagement()).willReturn(true);
+                ResultActions actions = mockMvc.perform(get("/vets").accept(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk());
+                actions.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(jsonPath("$.vetList[0].id").value(1));
+        }
 
-	@Test
-	void testShowResourcesVetList() throws Exception {
-		ResultActions actions = mockMvc.perform(get("/vets").accept(MediaType.APPLICATION_JSON))
-			.andExpect(status().isOk());
-		actions.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-			.andExpect(jsonPath("$.vetList[0].id").value(1));
-	}
+        @Test
+        void testShowResourcesVetListWithFeatureDisabled() throws Exception {
+                given(this.featureFlagConfig.isVetManagement()).willReturn(false);
+                mockMvc.perform(get("/vets").accept(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isServiceUnavailable());
+        }
 
 }
