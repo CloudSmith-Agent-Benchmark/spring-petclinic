@@ -1,2 +1,2 @@
 #!/bin/sh
-chmod +x mvn
+chmod +x mvnw

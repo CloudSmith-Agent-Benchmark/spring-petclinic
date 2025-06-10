@@ -36,6 +36,8 @@ jobs:
             cd spring-petclinic
             git fetch --all
             git reset --hard origin/${GITHUB_REF#refs/heads/}
+            # Set executable permissions on Maven wrapper
+            chmod +x mvnw
             # Build the project
             ./mvnw clean package -DskipTests
           
@@ -60,5 +62,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd spring-petclinic
+            # Ensure Maven wrapper is executable
+            chmod +x mvnw
             # Run integration tests
             ./mvnw test -Dtest=PetClinicIntegrationTests
