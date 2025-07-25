@@ -204,3 +204,6 @@ For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: S
 ## License
 
 The Spring PetClinic sample application is released under version 2.0 of the [Apache License](https://www.apache.org/licenses/LICENSE-2.0).
+
+## CloudSmith Agent Test
+This is a test change for the CloudSmith Release Safety Agent.
